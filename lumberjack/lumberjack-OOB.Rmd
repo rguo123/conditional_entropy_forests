@@ -1,0 +1,87 @@
+---
+title: "Using OOB to prevent overfitting in rf-Conditional Entropy Estimate"
+output: html_notebook
+---
+Let's first try to import lumberjack
+
+```{r}
+library(rerf)
+```
+Cool! Easy to load. We will quickly run through the tutorial just to catch ourselves up with R and how LJ works.
+```{r}
+X <- as.matrix(iris[,1:4])
+Y <- iris[[5L]]
+forest <- RerF(X, Y, seed = 1L, num.cores = 1L)
+forest$trees[[1]]
+```
+```{r}
+?Predict
+```
+
+```{r}
+trainIdx <- c(1:40, 51:90, 101:140)
+forest <- RerF(X[trainIdx, ], Y[trainIdx], seed = 1L, num.cores = 1L)
+predictions = Predict(X[-trainIdx,], forest, aggregate.output = TRUE, output.scores = TRUE)
+predictions
+```
+This is very good! What is outputted above is exactly what we want, the posterior distribution given for each X. Now all that's left to do is to translate our scenario from the jupyter notebooks to R!
+
+From our previous simulation, we want $Y \sim Bernoulli(1/2)$ be -1 or 1 and $X \sim \mathcal N(\mu y, 1)$.
+
+```{r}
+getSample <- function(n, mu) {
+  y = rbinom(n, 1, .5)
+  X = rep(0, n)
+  for (i in 1:n) {
+    if (y[i] == 1) {
+      X[i] <- rnorm(1, mu, 1)
+    } else {
+      X[i] <- rnorm(1, -mu, 1)
+    }
+  }
+  return(data.frame(X, y))
+}
+
+data <- getSample(1000, 0)
+```
+
+Cool, we have data. Now let's reconstruct the algorithm!
+
+```{r}
+?Predict
+estConditionalEntropy <- function(X, y) {
+  forest <- RerF(X, as.matrix(y), trees = 500, store.oob = TRUE, bagging = .368, replacement = FALSE)
+  predictions = OOBPredict(X, forest, output.scores = TRUE)
+  entropies <- apply(predictions, 1, function(x){
+    entropy <- 0
+    for (i in x) {
+      entropy <- entropy - i*log(i)
+    }
+    return(entropy)
+  })
+  entropies[is.nan(entropies)] <- 0
+  return(mean(entropies))
+}
+predictions <- estConditionalEntropy(data[1], data[2])
+predictions
+```
+This seems similar to the results from python which isn't good. Let's reproduce the plot.
+
+```{r}
+n_vec <- seq(500, 4000, 500)
+mean <- 0
+entr_vec <- rep(0, 8)
+for (i in 1:8) {
+  data <- getSample(n_vec[i], mean)
+  entr_vec[i] <- estConditionalEntropy(data[1], data[2])
+  print("done")
+}
+
+```
+```{r}
+n <- n_vec
+conditional_entropy_estimate <- entr_vec
+plot(n, conditional_entropy_estimate, type="l",col="red", ylim = c(0, .8), ylab = "H(Y|X) estimate", main = "Conditional Entropy Estimate using OOB Samples")
+abline(h = .693, col="green")
+```
+
