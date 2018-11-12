@@ -1,6 +1,6 @@
 ---
 title: "Using OOB to prevent overfitting in rf-Conditional Entropy Estimate"
-output: html_notebook
+output: rmarkdown::github_document
 ---
 Let's first try to import lumberjack
 
@@ -15,7 +15,7 @@ forest <- RerF(X, Y, seed = 1L, num.cores = 1L)
 forest$trees[[1]]
 ```
 ```{r}
-?Predict
+?RerF
 ```
 
 ```{r}
@@ -48,10 +48,10 @@ data <- getSample(1000, 0)
 Cool, we have data. Now let's reconstruct the algorithm!
 
 ```{r}
-?Predict
+?RerF
 estConditionalEntropy <- function(X, y) {
-  forest <- RerF(X, as.matrix(y), trees = 500, store.oob = TRUE, bagging = .368, replacement = FALSE)
-  predictions = OOBPredict(X, forest, output.scores = TRUE)
+  forest <- RerF(X, as.matrix(y), max.depth = 4L, trees = 500, store.oob = TRUE, bagging = .368, replacement = FALSE)
+  predictions <- OOBPredict(X, forest, output.scores = TRUE)
   entropies <- apply(predictions, 1, function(x){
     entropy <- 0
     for (i in x) {
@@ -63,9 +63,17 @@ estConditionalEntropy <- function(X, y) {
   return(mean(entropies))
 }
 predictions <- estConditionalEntropy(data[1], data[2])
-predictions
+print(predictions)
+oob.error <- mean(predictions!= data[2])
+
 ```
+
 This seems similar to the results from python which isn't good. Let's reproduce the plot.
+
+```{r}
+
+```
+
 
 ```{r}
 n_vec <- seq(500, 4000, 500)
@@ -83,5 +91,6 @@ n <- n_vec
 conditional_entropy_estimate <- entr_vec
 plot(n, conditional_entropy_estimate, type="l",col="red", ylim = c(0, .8), ylab = "H(Y|X) estimate", main = "Conditional Entropy Estimate using OOB Samples")
 abline(h = .693, col="green")
+legend("bottomright", legend = c("True", "Estimate"), text.col = c("green", "red"))
 ```
 
