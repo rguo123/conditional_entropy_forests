@@ -50,7 +50,7 @@ Cool, we have data. Now let's reconstruct the algorithm!
 ```{r}
 ?RerF
 estConditionalEntropy <- function(X, y) {
-  forest <- RerF(X, as.matrix(y), max.depth = 4L, trees = 500, store.oob = TRUE, bagging = .368, replacement = FALSE)
+  forest <- RerF(X, as.matrix(y), max.depth = 4, trees = 500, min.parent = 0, store.oob = TRUE, bagging = .38, replacement = FALSE)
   predictions <- OOBPredict(X, forest, output.scores = TRUE)
   entropies <- apply(predictions, 1, function(x){
     entropy <- 0
@@ -62,6 +62,7 @@ estConditionalEntropy <- function(X, y) {
   entropies[is.nan(entropies)] <- 0
   return(mean(entropies))
 }
+
 predictions <- estConditionalEntropy(data[1], data[2])
 print(predictions)
 oob.error <- mean(predictions!= data[2])
