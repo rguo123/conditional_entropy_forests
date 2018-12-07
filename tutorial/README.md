@@ -32,5 +32,4 @@ Have Docker installed on machine. Instructions [here](https://docs.docker.com/do
   ```
   http://localhost:8888/?token=....
   ```
-   You should now be able to access the Nomads-Classifier jupyter notebook. Leave the container running and follow the       
-   instructions in there to run the pipeline!
+   You should now be able to access the jupyter notebook.
